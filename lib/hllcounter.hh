@@ -49,8 +49,8 @@ namespace khmer
 
 namespace read_parsers
 {
-    template<typename SeqIO> class ReadParser;
-    class FastxReader;
+template<typename SeqIO> class ReadParser;
+class FastxReader;
 }
 
 class HLLCounter
