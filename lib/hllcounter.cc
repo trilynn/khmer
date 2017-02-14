@@ -206,6 +206,10 @@ void HLLCounter::init(int nc, WordLength ksize)
     counters = newc;
 }
 
+inline bool _all_zeroes(const std::vector<uint8_t> &v) {
+    return std::all_of(v.begin(), v.end(), [](uint8_t i) {return i==0;});
+}
+
 double HLLCounter::get_erate()
 {
     return 1.04 / sqrt(ncounters);
@@ -213,7 +217,7 @@ double HLLCounter::get_erate()
 
 void HLLCounter::set_erate(double error_rate)
 {
-    if (count(begin(counters), end(counters), 0) != ncounters) {
+    if (not _all_zeroes(counters)) {
         throw ReadOnlyAttribute("You can only change error rate prior to "
                                 "first counting");
     }
@@ -228,7 +232,7 @@ void HLLCounter::set_erate(double error_rate)
 
 void HLLCounter::set_ksize(WordLength new_ksize)
 {
-    if (count(begin(counters), end(counters), 0) != ncounters) {
+    if (not _all_zeroes(counters)) {
         throw ReadOnlyAttribute("You can only change k-mer size prior to "
                                 "first counting");
     }
