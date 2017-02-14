@@ -313,7 +313,6 @@ unsigned int HLLCounter::consume_string(const std::string &s)
     std::string kmer = "";
 
     for (auto ch: s) {
-        ch &= 0xdf; // toupper - knock out the "lowercase bit"
         kmer.push_back(ch);
         if (kmer.size() < _ksize) {
             continue;
@@ -385,14 +384,13 @@ void HLLCounter::consume_fasta(
                 #pragma omp task default(none) firstprivate(read) \
                 shared(hlls, n_consumed_partial, total_reads_partial)
                 {
-                    bool is_valid;
                     int n, t = omp_get_thread_num();
-                    n = hlls[t]->check_and_process_read(read.sequence,
-                                                        is_valid);
+
+                    read.set_clean_seq();
+                    n = hlls[t]->consume_string(read.cleaned_seq);
+
                     n_consumed_partial[t] += n;
-                    if (is_valid) {
-                        total_reads_partial[t] += 1;
-                    }
+                    total_reads_partial[t] += 1;
                 }
 
             } // while reads left for parser
@@ -413,40 +411,6 @@ void HLLCounter::consume_fasta(
             free(total_reads_partial);
         }
     }
-}
-
-unsigned int HLLCounter::check_and_process_read(std::string &read,
-        bool &is_valid)
-{
-    is_valid = check_and_normalize_read(read);
-
-    if (!is_valid) {
-        return 0;
-    }
-
-    return consume_string(read);
-}
-
-bool HLLCounter::check_and_normalize_read(std::string &read) const
-{
-    bool is_valid = true;
-
-    if (read.length() < _ksize) {
-        return false;
-    }
-
-    for (auto &ch: read) {
-        ch &= 0xdf; // toupper - knock out the "lowercase bit"
-        if (ch == 'N') {
-            ch = 'A';
-        }
-        if (!is_valid_dna(ch)) {
-            is_valid = false;
-            break;
-        }
-    }
-
-    return is_valid;
 }
 
 void HLLCounter::merge(HLLCounter &other)
