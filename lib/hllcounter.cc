@@ -267,10 +267,40 @@ uint64_t HLLCounter::estimate_cardinality()
 
 void HLLCounter::add(const std::string &value)
 {
-    HashIntoType x = khmer::_hash_murmur(value, value.length());
-    uint64_t j = x & (ncounters - 1);
-    counters[j] = std::max(counters[j],
-                           get_rho(x >> ncounters_log2, 64 - ncounters_log2));
+    HashIntoType hashed = khmer::_hash_murmur(value, value.length());
+    // Use lowest bits for indexing
+    uint64_t index = hashed & (ncounters - 1);
+
+    // Shift the hashed value to remove the index
+    uint64_t to_count = hashed >> ncounters_log2;
+
+    // Maximum value possible (since our hashed value is 64-bits long
+    // This is, of course, a lie: the maximum value is actually
+    // 64 - log_2(number of counters)
+    // but we do the subtraction later (I promise!)
+    int new_value = 64;
+
+    /*
+      What is happening here? We are using some GCC builtins:
+        __builtin_clzll counts the number of leading zeroes.
+        __builtin_expect says to the compiler that this will be the branch used
+          most of the time. Also, clzll is undefined if the argument is 0,
+          so we avoid problems with it.
+    */
+    if (__builtin_expect((to_count > 0), 1)) {
+        new_value = __builtin_clzll(to_count);
+    }
+
+    /*
+      since we use the lower bits for indexing, we need to subtract
+      the number of bits (which is log_2(number of counters)).
+      This need to be removed because we shifted the hashed value,
+      so we are overcounting the number of leading zeroes.
+      (see, told you we would do the subtraction)
+    */
+    new_value = new_value - ncounters_log2 + 1;
+
+    counters[index] = std::max(counters[index], (uint8_t)new_value);
 }
 
 unsigned int HLLCounter::consume_string(const std::string &s)
