@@ -175,12 +175,6 @@ double estimate_bias(double E, int p)
     return estimate / nearest.size();
 }
 
-uint8_t
-get_rho(HashIntoType w, uint8_t max_width)
-{
-    return max_width - floor(log2(w));
-}
-
 HLLCounter::HLLCounter(double error_rate, WordLength ksize)
 {
     if (error_rate < 0) {
