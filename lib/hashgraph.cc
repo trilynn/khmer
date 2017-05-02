@@ -812,7 +812,7 @@ const
     unsigned long n = 0;
     while(!kmers.done()) {
         n++;
-        if (n % 10000 == 0) {
+        if (n % 100000 == 0) {
             std::cout << "... find_high_degree_nodes: " << n << "\n";
             std::cout << std::flush;
         }
